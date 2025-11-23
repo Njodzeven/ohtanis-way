@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ohtani_postgres
+    environment:
+      POSTGRES_USER: ohtani
+      POSTGRES_PASSWORD: ohtani_password
+      POSTGRES_DB: ohtani_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ohtani_network
+
+  mongo:
+    image: mongo:7.0
+    container_name: ohtani_mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ohtani
+      MONGO_INITDB_ROOT_PASSWORD: ohtani_password
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - ohtani_network
+
+volumes:
+  postgres_data:
+  mongo_data:
+
+
+networks:
+  ohtani_network:
+    driver: bridge
