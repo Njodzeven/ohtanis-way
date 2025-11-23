@@ -41,6 +41,13 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, 'index.html'),
+      },
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['framer-motion', 'lucide-react', 'clsx', 'tailwind-merge'],
+          pdf: ['jspdf', 'html2canvas']
+        }
       }
     }
   }
