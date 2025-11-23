@@ -10,7 +10,8 @@ Before you begin, ensure you have:
 1. ✅ GitHub account
 2. ✅ Render.com account (sign up at https://render.com)
 3. ✅ MongoDB Atlas account (sign up at https://www.mongodb.com/cloud/atlas/register)
-4. ✅ HuggingFace API key (get from https://huggingface.co/settings/tokens)
+(HuggingFace API key (get from https://huggingface.co/settings/tokens))
+4. ✅ Google Gemini API key (get from https://aistudio.google.com/app/apikey)
 5. ✅ Git initialized in your project
 
 ---
@@ -176,7 +177,7 @@ Scroll down to **"Environment Variables"** and add these:
 | `MONGO_URI` | *Paste your MongoDB Atlas connection string from Step 2.4* |
 | `JWT_SECRET` | *Generate a random string (32+ characters)* |
 | `JWT_EXPIRATION` | `7d` |
-| `HUGGING_FACE_API_KEY` | *Your HuggingFace API key* |
+| `GEMINI_API_KEY` | *Your Google Gemini API key* |
 | `CORS_ORIGIN` | `https://ohtanis-way-frontend.onrender.com` |
 
 **To generate JWT_SECRET**, run in terminal:

@@ -18,7 +18,7 @@ DATABASE_URL=<from_render_postgres>
 MONGO_URI=<from_mongodb_atlas>
 JWT_SECRET=<generate_random_32_chars>
 JWT_EXPIRATION=7d
-HUGGING_FACE_API_KEY=<your_hf_key>
+GEMINI_API_KEY=<your_gemini_api_key>
 CORS_ORIGIN=https://ohtanis-way-frontend.onrender.com
 ```
 

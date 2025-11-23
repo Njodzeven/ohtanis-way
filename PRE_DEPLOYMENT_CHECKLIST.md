@@ -21,10 +21,12 @@ Before deploying to Render, complete these steps:
 - [ ] Copy connection string
 - [ ] Save connection string securely
 
-### HuggingFace API
-- [ ] Sign up at https://huggingface.co
-- [ ] Go to Settings → Access Tokens
-- [ ] Create new token (read permission)
+### Google Gemini API
+- [ ] Go to https://aistudio.google.com/app/apikey
+- [ ] Sign in with Google account
+- [ ] Click "Create API Key"
+- [ ] Create API key in new or existing Google Cloud project
+- [ ] Copy the API key
 - [ ] Save API key securely
 
 ## ☑ STEP 3: Render.com Setup
@@ -58,7 +60,7 @@ Before deploying to Render, complete these steps:
   - [ ] MONGO_URI
   - [ ] JWT_SECRET (generate random)
   - [ ] JWT_EXPIRATION
-  - [ ] HUGGING_FACE_API_KEY
+  - [ ] GEMINI_API_KEY
   - [ ] CORS_ORIGIN (placeholder for now)
 - [ ] Deploy and wait for completion
 - [ ] Copy backend URL
@@ -111,7 +113,7 @@ Keep these handy during deployment:
 |------|----------------|-----------|
 | MongoDB Connection String | MongoDB Atlas → Connect | _________________ |
 | PostgreSQL URL | Render PostgreSQL → Connections | _________________ |
-| HuggingFace API Key | HuggingFace → Settings → Tokens | _________________ |
+| Google Gemini API Key | Google AI Studio → API Keys | _________________ |
 | JWT Secret | Generate with crypto | _________________ |
 | Backend URL | Render Backend Service | _________________ |
 | Frontend URL | Render Static Site | _________________ |
