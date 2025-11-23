@@ -16,8 +16,7 @@ coverage/
 *.swp
 *.swo
 *~
-*.md
 .cache/
 temp/
 tmp/
-Docs/
+*.md

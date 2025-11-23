@@ -14,7 +14,7 @@ npm run dev:frontend
 ```
 NODE_ENV=production
 PORT=8000
-DATABASE_URL=<from_render_postgres>
+POSTGRES_URL=<from_render_postgres>
 MONGO_URI=<from_mongodb_atlas>
 JWT_SECRET=<generate_random_32_chars>
 JWT_EXPIRATION=7d

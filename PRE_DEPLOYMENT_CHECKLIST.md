@@ -56,7 +56,7 @@ Before deploying to Render, complete these steps:
 - [ ] Add all environment variables:
   - [ ] NODE_ENV
   - [ ] PORT
-  - [ ] DATABASE_URL
+  - [ ] POSTGRES_URL
   - [ ] MONGO_URI
   - [ ] JWT_SECRET (generate random)
   - [ ] JWT_EXPIRATION

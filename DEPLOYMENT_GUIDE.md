@@ -173,7 +173,7 @@ Scroll down to **"Environment Variables"** and add these:
 |-----|-------|
 | `NODE_ENV` | `production` |
 | `PORT` | `8000` |
-| `DATABASE_URL` | *Paste your PostgreSQL Internal URL from Step 3.2* |
+| `POSTGRES_URL` | *Paste your PostgreSQL Internal URL from Step 3.2* |
 | `MONGO_URI` | *Paste your MongoDB Atlas connection string from Step 2.4* |
 | `JWT_SECRET` | *Generate a random string (32+ characters)* |
 | `JWT_EXPIRATION` | `7d` |
