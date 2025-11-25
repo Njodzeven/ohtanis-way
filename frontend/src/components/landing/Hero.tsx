@@ -1,12 +1,14 @@
-
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
+import { useNavigate } from "react-router-dom"
 
 interface HeroProps {
     onCtaClick?: () => void
 }
 
 export function Hero({ onCtaClick }: HeroProps) {
+    const navigate = useNavigate()
+
     return (
         <section className="min-h-screen flex flex-col items-center justify-center p-6 text-center relative overflow-hidden bg-background text-foreground">
             {/* Premium Gradient Overlay */}
@@ -48,7 +50,12 @@ export function Hero({ onCtaClick }: HeroProps) {
                     >
                         Create Your Chart
                     </Button>
-                    <Button variant="outline" size="lg" className="text-lg px-8 py-6 font-serif border-foreground/20 hover:bg-foreground/5 transition-all duration-300">
+                    <Button
+                        variant="outline"
+                        size="lg"
+                        onClick={() => navigate("/learn-more")}
+                        className="text-lg px-8 py-6 font-serif border-foreground/20 hover:bg-foreground/5 transition-all duration-300"
+                    >
                         Learn More
                     </Button>
                 </div>
