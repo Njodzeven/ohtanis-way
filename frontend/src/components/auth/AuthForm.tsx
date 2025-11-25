@@ -63,6 +63,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
+                            autoComplete="username"
                             className="bg-background/50"
                         />
                     </div>
@@ -74,12 +75,13 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
+                            autoComplete={isLogin ? "current-password" : "new-password"}
                             className="bg-background/50"
                         />
                     </div>
                     {error && <p className="text-sm text-red-500">{error}</p>}
                 </CardContent>
-                <CardFooter className="flex flex-col gap-4">
+                <CardFooter className="flex flex-col gap-4 pt-6">
                     <Button type="submit" className="w-full font-serif" disabled={loading}>
                         {loading ? "Loading..." : (isLogin ? "Login" : "Register")}
                     </Button>
