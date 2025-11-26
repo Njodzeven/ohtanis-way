@@ -15,4 +15,18 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
+// Response interceptor to handle 401 errors
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            // Clear invalid token
+            localStorage.removeItem('token');
+            // Dispatch custom event to notify components
+            window.dispatchEvent(new Event('auth:logout'));
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default api;
