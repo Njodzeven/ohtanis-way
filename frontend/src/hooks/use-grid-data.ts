@@ -18,17 +18,58 @@ export interface MandalaChartData {
     pillars: Pillar[]
 }
 
-export function useGridData() {
-    const [data, setData] = useState<MandalaChartData | null>(null)
-    const [loading, setLoading] = useState(true)
+interface UseGridDataOptions {
+    mode?: 'api' | 'guest' | 'static'
+    initialData?: MandalaChartData
+}
+
+const GUEST_STORAGE_KEY = 'ohtani_guest_data'
+
+const createEmptyGrid = (): MandalaChartData => {
+    return {
+        center: { id: 'center', content: '' },
+        pillars: Array.from({ length: 8 }, (_, i) => ({
+            id: `pillar-${i}`,
+            content: '',
+            tasks: Array.from({ length: 8 }, (_, j) => ({
+                id: `pillar-${i}-task-${j}`,
+                content: ''
+            }))
+        }))
+    }
+}
+
+export function useGridData({ mode = 'api', initialData }: UseGridDataOptions = {}) {
+    const [data, setData] = useState<MandalaChartData | null>(initialData || null)
+    const [loading, setLoading] = useState(mode === 'api')
     const [saving, setSaving] = useState(false)
 
     const fetchChart = async () => {
+        if (mode === 'static') {
+            if (initialData) setData(initialData)
+            setLoading(false)
+            return
+        }
+
+        if (mode === 'guest') {
+            const stored = localStorage.getItem(GUEST_STORAGE_KEY)
+            if (stored) {
+                setData(JSON.parse(stored))
+            } else {
+                setData(createEmptyGrid())
+            }
+            setLoading(false)
+            return
+        }
+
+        // API Mode
         try {
             const response = await api.get('/goals')
             setData(response.data)
         } catch (error) {
             console.error('Failed to fetch chart:', error)
+            // Fallback to empty grid if API fails
+            setData(createEmptyGrid())
         } finally {
             setLoading(false)
         }
@@ -37,21 +78,29 @@ export function useGridData() {
     // Debounced save function
     const debouncedSave = useCallback(
         debounce(async (newData: MandalaChartData) => {
+            if (mode === 'static') return
+
             setSaving(true)
             try {
-                await api.put('/goals', newData)
+                if (mode === 'guest') {
+                    localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(newData))
+                    // Simulate network delay for UX
+                    await new Promise(resolve => setTimeout(resolve, 500))
+                } else {
+                    await api.put('/goals', newData)
+                }
             } catch (error) {
                 console.error('Failed to save chart:', error)
             } finally {
                 setSaving(false)
             }
         }, 1000),
-        []
+        [mode]
     )
 
     useEffect(() => {
         fetchChart()
-    }, [])
+    }, [mode])
 
     const updateCell = (id: string, content: string) => {
         if (!data) return
