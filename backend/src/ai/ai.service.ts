@@ -10,14 +10,18 @@ export class AiService {
         private readonly configService: ConfigService,
     ) { }
 
-    async analyzeGoal(goal: string): Promise<any> {
+    async analyzeGoal(goal: string, userId?: string | null): Promise<any> {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (!apiKey) {
             this.logger.error('Gemini API Key not configured');
             throw new HttpException('AI Service configuration error', HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        // Sanitize input to prevent prompt injection
+        const sanitizedGoal = goal.trim().substring(0, 500);
+
+        // Move API key to header instead of URL parameter
+        const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
         const requestBody = {
             systemInstruction: {
@@ -27,7 +31,7 @@ export class AiService {
             },
             contents: [{
                 parts: [{
-                    text: `Main Goal: "${goal}". Generate the full Open Window 64 Mandala Chart. Return a JSON object with a 'center_goal' and a 'pillars' array. Each pillar must have a 'title' and a 'tasks' array containing exactly 8 strings. Ensure the tasks are highly specific and actionable.`
+                    text: `Main Goal: "${sanitizedGoal}". Generate the full Open Window 64 Mandala Chart. Return a JSON object with a 'center_goal' and a 'pillars' array. Each pillar must have a 'title' and a 'tasks' array containing exactly 8 strings. Ensure the tasks are highly specific and actionable.`
                 }]
             }],
             generationConfig: {
@@ -67,6 +71,7 @@ export class AiService {
                 {
                     headers: {
                         'Content-Type': 'application/json',
+                        'x-goog-api-key': apiKey, // API key in header, not URL
                     },
                 },
             );

@@ -8,18 +8,20 @@ import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { AiModule } from './ai/ai.module';
 import { GoalsModule } from './goals/goals.module';
+import { ChartsModule } from './charts/charts.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
+      ttl: 60000, // 60 seconds
+      limit: 100, // 100 requests per minute (reasonable for same IP, multiple browsers)
     }]),
     DatabaseModule,
     AuthModule,
     AiModule,
     GoalsModule,
+    ChartsModule,
   ],
   controllers: [AppController],
   providers: [

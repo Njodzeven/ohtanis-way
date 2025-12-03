@@ -44,6 +44,8 @@ export function GridCell({ id, content, isCenter, isSubgridCenter, onClick, onCh
                     onChange={(e) => onChange?.(e.target.value)}
                     className={cn(
                         "w-full h-full bg-transparent resize-none text-center focus:outline-none p-0.5",
+                        // Hide scrollbar but allow scrolling
+                        "scrollbar-none",
                         isCenter ? "text-primary-foreground placeholder:text-primary-foreground/50" : "text-foreground placeholder:text-muted-foreground/50"
                     )}
                     placeholder={placeholder || "..."}

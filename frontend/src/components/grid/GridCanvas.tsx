@@ -1,14 +1,18 @@
-import { useRef } from "react"
-import { motion } from "framer-motion"
+import { useRef, useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { GridCell } from "./GridCell"
 import { Button } from "@/components/ui/button"
-import { Loader2, Save, Download } from "lucide-react"
+import { Loader2, Save, Download, ZoomIn, ArrowLeft } from "lucide-react"
 import { useGridData, type MandalaChartData } from "@/hooks/use-grid-data"
 import { AiGeneratorModal } from "@/components/ai/AiGeneratorModal"
 import html2canvas from "html2canvas"
 import jsPDF from "jspdf"
 import { SHOHEI_OHTANI_DATA } from "@/lib/shohei-data"
 import { toast } from "sonner"
+import { useSearchParams } from "react-router-dom"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 interface GridCanvasProps {
     mode?: 'api' | 'guest' | 'static'
@@ -17,13 +21,23 @@ interface GridCanvasProps {
 }
 
 export function GridCanvas({ mode = 'api', initialData, readOnly }: GridCanvasProps) {
-    const { data, loading, saving, updateCell, setData } = useGridData({ mode, initialData })
+    const [searchParams] = useSearchParams()
+    const chartId = searchParams.get('id')
+    const { data, loading, saving, updateCell, setData } = useGridData({ mode, initialData, chartId })
     const gridRef = useRef<HTMLDivElement>(null)
+    const [zoomedSection, setZoomedSection] = useState<number | null>(null)
+    const [showDownloadDialog, setShowDownloadDialog] = useState(false)
+    const [downloadFormat, setDownloadFormat] = useState<'png' | 'pdf'>('pdf')
 
-    const handleDownload = async () => {
-        if (!gridRef.current || !data) return
+    // Reset zoom when data changes or on mount
+    useEffect(() => {
+        setZoomedSection(null)
+    }, [chartId])
 
+    const handleDownloadClick = () => {
         // Validate that all cells are filled
+        if (!data) return
+
         let isComplete = true;
         if (!data.center.content) isComplete = false;
         data.pillars.forEach(p => {
@@ -39,6 +53,13 @@ export function GridCanvas({ mode = 'api', initialData, readOnly }: GridCanvasPr
             });
             return;
         }
+
+        setShowDownloadDialog(true)
+    }
+
+    const executeDownload = async () => {
+        if (!gridRef.current) return
+        setShowDownloadDialog(false)
 
         try {
             // Clone the element to avoid modifying the actual DOM
@@ -74,32 +95,33 @@ export function GridCanvas({ mode = 'api', initialData, readOnly }: GridCanvasPr
 
             const canvas = await html2canvas(clone, {
                 backgroundColor: "#f5f5f0",
-                scale: 3,
+                scale: 2, // Lower scale for better performance
                 useCORS: true,
                 logging: false,
-                ignoreElements: () => {
-                    // Ignore any problematic elements
-                    return false;
-                }
             });
 
-            // Clean up clone
             document.body.removeChild(clone);
 
-            const imgData = canvas.toDataURL("image/png");
-            const pdf = new jsPDF({
-                orientation: "landscape",
-                unit: "px",
-                format: [canvas.width, canvas.height]
-            });
+            if (downloadFormat === 'png') {
+                const link = document.createElement('a');
+                link.download = 'ohtani-mandala-chart.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            } else {
+                const imgData = canvas.toDataURL("image/png");
+                const pdf = new jsPDF({
+                    orientation: "landscape",
+                    unit: "px",
+                    format: [canvas.width, canvas.height]
+                });
+                pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+                pdf.save("ohtani-mandala-chart.pdf");
+            }
 
-            pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
-            pdf.save("ohtani-mandala-chart.pdf");
-
-            toast.success("PDF downloaded successfully!");
+            toast.success(`${downloadFormat.toUpperCase()} downloaded successfully!`);
         } catch (error) {
             console.error("Download failed:", error);
-            toast.error("Failed to download PDF. Please try again.");
+            toast.error("Failed to download. Please try again.");
         }
     }
 
@@ -115,7 +137,6 @@ export function GridCanvas({ mode = 'api', initialData, readOnly }: GridCanvasPr
         )
     }
 
-    // Use Shohei's data for placeholders if data is missing or empty
     const getPlaceholder = (type: 'center' | 'pillar' | 'task', pillarIndex?: number, taskIndex?: number) => {
         if (type === 'center') return SHOHEI_OHTANI_DATA.center.content;
         if (type === 'pillar' && pillarIndex !== undefined) {
@@ -129,13 +150,12 @@ export function GridCanvas({ mode = 'api', initialData, readOnly }: GridCanvasPr
 
     if (!data) return null
 
-    // Helper to render a 3x3 subgrid
     const renderSubgrid = (row: number, col: number) => {
-        // Determine which section of the 9x9 grid this is
-        // 0 1 2
-        // 3 4 5
-        // 6 7 8
         const sectionIndex = row * 3 + col;
+        const isCenter = sectionIndex === 4;
+
+        // If zoomed, only show the zoomed section
+        if (zoomedSection !== null && zoomedSection !== sectionIndex) return null;
 
         const ArrowsOverlay = () => (
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-10 z-0">
@@ -157,12 +177,18 @@ export function GridCanvas({ mode = 'api', initialData, readOnly }: GridCanvasPr
             </div>
         )
 
-        // Center Section (Index 4) -> Main Goal + Pillar Titles
-        if (sectionIndex === 4) {
+        const commonGridProps = {
+            className: `grid grid-cols-3 gap-1 p-1 border rounded-lg relative transition-all duration-300 ${zoomedSection === sectionIndex ? 'w-full h-full border-primary/50 shadow-2xl' : 'border-border/20 hover:bg-accent/5 cursor-pointer'
+                }`,
+            onClick: () => {
+                if (zoomedSection === null) setZoomedSection(sectionIndex)
+            }
+        }
+
+        if (isCenter) {
             return (
-                <div key="center-subgrid" className="grid grid-cols-3 gap-1 p-1 border-2 border-primary/20 rounded-lg bg-primary/5 relative">
+                <div key="center-subgrid" {...commonGridProps} className={`${commonGridProps.className} border-2 border-primary/20 bg-primary/5`}>
                     <ArrowsOverlay />
-                    {/* Top Row: Pillars 0, 1, 2 */}
                     {[0, 1, 2].map(i => (
                         <GridCell
                             key={data.pillars[i].id}
@@ -175,7 +201,6 @@ export function GridCanvas({ mode = 'api', initialData, readOnly }: GridCanvasPr
                             className="z-10 bg-card/80 backdrop-blur-sm"
                         />
                     ))}
-                    {/* Mid Row: Pillar 3, CENTER, Pillar 4 */}
                     <GridCell
                         id={data.pillars[3].id}
                         content={data.pillars[3].content}
@@ -203,7 +228,6 @@ export function GridCanvas({ mode = 'api', initialData, readOnly }: GridCanvasPr
                         readOnly={readOnly}
                         className="z-10 bg-card/80 backdrop-blur-sm"
                     />
-                    {/* Bot Row: Pillars 5, 6, 7 */}
                     {[5, 6, 7].map(i => (
                         <GridCell
                             key={data.pillars[i].id}
@@ -220,21 +244,12 @@ export function GridCanvas({ mode = 'api', initialData, readOnly }: GridCanvasPr
             )
         }
 
-        // Outer Sections -> Pillar + Tasks
-        // Map sectionIndex to Pillar Index
-        // Section 0 -> Pillar 0
-        // Section 1 -> Pillar 1
-        // ...
-        // Section 4 is skipped (handled above)
-        // Section 5 -> Pillar 4
-        // ...
         const pillarIndex = sectionIndex < 4 ? sectionIndex : sectionIndex - 1;
         const pillar = data.pillars[pillarIndex];
 
         return (
-            <div key={`pillar-${pillarIndex}`} className="grid grid-cols-3 gap-1 p-1 border border-border/20 rounded-lg hover:bg-accent/5 transition-colors relative">
+            <div key={`pillar-${pillarIndex}`} {...commonGridProps}>
                 <ArrowsOverlay />
-                {/* Tasks 0-2 */}
                 {pillar.tasks.slice(0, 3).map((task, i) => (
                     <GridCell
                         key={task.id}
@@ -246,7 +261,6 @@ export function GridCanvas({ mode = 'api', initialData, readOnly }: GridCanvasPr
                         className="z-10 bg-card/80 backdrop-blur-sm"
                     />
                 ))}
-                {/* Task 3, Pillar Title (Center), Task 4 */}
                 <GridCell
                     id={pillar.tasks[3].id}
                     content={pillar.tasks[3].content}
@@ -256,10 +270,10 @@ export function GridCanvas({ mode = 'api', initialData, readOnly }: GridCanvasPr
                     className="z-10 bg-card/80 backdrop-blur-sm"
                 />
                 <GridCell
-                    id={`subcenter-${pillar.id}`} // Unique ID for display only
+                    id={`subcenter-${pillar.id}`}
                     content={pillar.content}
                     placeholder={getPlaceholder('pillar', pillarIndex)}
-                    readOnly={true} // Always read-only as it mirrors the center grid
+                    readOnly={true}
                     isSubgridCenter
                     className="bg-secondary/20 font-semibold z-10"
                 />
@@ -271,7 +285,6 @@ export function GridCanvas({ mode = 'api', initialData, readOnly }: GridCanvasPr
                     readOnly={readOnly}
                     className="z-10 bg-card/80 backdrop-blur-sm"
                 />
-                {/* Tasks 5-7 */}
                 {pillar.tasks.slice(5, 8).map((task, i) => (
                     <GridCell
                         key={task.id}
@@ -291,12 +304,19 @@ export function GridCanvas({ mode = 'api', initialData, readOnly }: GridCanvasPr
         <div className="w-full max-w-[1400px] mx-auto p-2 md:p-8 flex flex-col items-center justify-center gap-6">
             <div className="w-full flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-serif font-bold text-primary">Ohtani's Way</h1>
+                    {zoomedSection !== null && (
+                        <Button variant="ghost" size="icon" onClick={() => setZoomedSection(null)}>
+                            <ArrowLeft className="w-4 h-4" />
+                        </Button>
+                    )}
+                    <h1 className="text-2xl font-serif font-bold text-primary">
+                        {zoomedSection !== null ? (zoomedSection === 4 ? "Central Goal" : `Pillar ${zoomedSection < 4 ? zoomedSection + 1 : zoomedSection}`) : "Ohtani's Way"}
+                    </h1>
                 </div>
 
                 <div className="flex items-center gap-2">
                     {!readOnly && <AiGeneratorModal onGenerate={handleAiGenerate} />}
-                    <Button variant="outline" size="icon" onClick={handleDownload} title="Download PDF">
+                    <Button variant="outline" size="icon" onClick={handleDownloadClick} title="Download">
                         <Download className="w-4 h-4" />
                     </Button>
                 </div>
@@ -317,13 +337,40 @@ export function GridCanvas({ mode = 'api', initialData, readOnly }: GridCanvasPr
             <motion.div
                 ref={gridRef}
                 layout
-                className="grid grid-cols-3 gap-2 md:gap-4 w-full aspect-square bg-[#f5f5f0] p-2 md:p-6 rounded-xl shadow-lg border border-[#e6e6e0]"
+                className={`w-full aspect-square bg-[#f5f5f0] p-2 md:p-6 rounded-xl shadow-lg border border-[#e6e6e0] transition-all duration-500 ${zoomedSection !== null ? 'flex items-center justify-center' : 'grid grid-cols-3 gap-2 md:gap-4'
+                    }`}
             >
                 {/* Render 9 Subgrids */}
                 {[0, 1, 2].map(row => (
                     [0, 1, 2].map(col => renderSubgrid(row, col))
                 ))}
             </motion.div>
+
+            <Dialog open={showDownloadDialog} onOpenChange={setShowDownloadDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Download Chart</DialogTitle>
+                        <DialogDescription>
+                            Choose your preferred format.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <RadioGroup defaultValue="pdf" value={downloadFormat} onValueChange={(v: string) => setDownloadFormat(v as 'png' | 'pdf')}>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="pdf" id="pdf" />
+                                <Label htmlFor="pdf">PDF Document</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="png" id="png" />
+                                <Label htmlFor="png">PNG Image</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={executeDownload}>Download</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

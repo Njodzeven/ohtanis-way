@@ -21,6 +21,7 @@ export interface MandalaChartData {
 interface UseGridDataOptions {
     mode?: 'api' | 'guest' | 'static'
     initialData?: MandalaChartData
+    chartId?: string | null
 }
 
 const GUEST_STORAGE_KEY = 'ohtani_guest_data'
@@ -39,7 +40,7 @@ const createEmptyGrid = (): MandalaChartData => {
     }
 }
 
-export function useGridData({ mode = 'api', initialData }: UseGridDataOptions = {}) {
+export function useGridData({ mode = 'api', initialData, chartId }: UseGridDataOptions = {}) {
     const [data, setData] = useState<MandalaChartData | null>(initialData || null)
     const [loading, setLoading] = useState(mode === 'api')
     const [saving, setSaving] = useState(false)
@@ -54,7 +55,22 @@ export function useGridData({ mode = 'api', initialData }: UseGridDataOptions = 
         if (mode === 'guest') {
             const stored = localStorage.getItem(GUEST_STORAGE_KEY)
             if (stored) {
-                setData(JSON.parse(stored))
+                try {
+                    const parsed = JSON.parse(stored)
+                    // Check expiry (7 days)
+                    const now = new Date().getTime()
+                    const sevenDays = 7 * 24 * 60 * 60 * 1000
+                    if (parsed.timestamp && (now - parsed.timestamp < sevenDays)) {
+                        setData(parsed.data)
+                    } else {
+                        // Expired or invalid format, clear and reset
+                        localStorage.removeItem(GUEST_STORAGE_KEY)
+                        setData(createEmptyGrid())
+                    }
+                } catch (e) {
+                    console.error("Failed to parse guest data", e)
+                    setData(createEmptyGrid())
+                }
             } else {
                 setData(createEmptyGrid())
             }
@@ -63,14 +79,19 @@ export function useGridData({ mode = 'api', initialData }: UseGridDataOptions = 
         }
 
         // API Mode
-        try {
-            const response = await api.get('/goals')
-            setData(response.data)
-        } catch (error) {
-            console.error('Failed to fetch chart:', error)
-            // Fallback to empty grid if API fails
+        if (chartId) {
+            try {
+                const response = await api.get(`/charts/${chartId}`)
+                setData(response.data.data) // Assuming backend returns { ...chart, data: Json }
+            } catch (error) {
+                console.error('Failed to fetch chart:', error)
+                setData(createEmptyGrid())
+            } finally {
+                setLoading(false)
+            }
+        } else {
+            // Default to empty or fetch latest? For now empty if no ID.
             setData(createEmptyGrid())
-        } finally {
             setLoading(false)
         }
     }
@@ -83,11 +104,15 @@ export function useGridData({ mode = 'api', initialData }: UseGridDataOptions = 
             setSaving(true)
             try {
                 if (mode === 'guest') {
-                    localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(newData))
+                    const storageData = {
+                        data: newData,
+                        timestamp: new Date().getTime()
+                    }
+                    localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(storageData))
                     // Simulate network delay for UX
                     await new Promise(resolve => setTimeout(resolve, 500))
-                } else {
-                    await api.put('/goals', newData)
+                } else if (chartId) {
+                    await api.put(`/charts/${chartId}`, { data: newData })
                 }
             } catch (error) {
                 console.error('Failed to save chart:', error)
@@ -95,12 +120,12 @@ export function useGridData({ mode = 'api', initialData }: UseGridDataOptions = 
                 setSaving(false)
             }
         }, 1000),
-        [mode]
+        [mode, chartId]
     )
 
     useEffect(() => {
         fetchChart()
-    }, [mode])
+    }, [mode, chartId])
 
     const updateCell = (id: string, content: string) => {
         if (!data) return
