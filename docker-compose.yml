@@ -3,11 +3,11 @@ services:
     image: postgres:16-alpine
     container_name: ohtani_postgres
     environment:
-      POSTGRES_USER: ohtani
-      POSTGRES_PASSWORD: ohtani_password
-      POSTGRES_DB: ohtani_db
+      POSTGRES_USER: ${POSTGRES_USER:-ohtani}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ohtani_dev_password_CHANGE_IN_PRODUCTION}
+      POSTGRES_DB: ${POSTGRES_DB:-ohtani_db}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -17,10 +17,10 @@ services:
     image: mongo:7.0
     container_name: ohtani_mongo
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ohtani
-      MONGO_INITDB_ROOT_PASSWORD: ohtani_password
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-ohtani}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-ohtani_dev_password_CHANGE_IN_PRODUCTION}
     ports:
-      - "27017:27017"
+      - "${MONGO_PORT:-27017}:27017"
     volumes:
       - mongo_data:/data/db
     networks:
